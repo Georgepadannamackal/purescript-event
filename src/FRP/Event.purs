@@ -12,8 +12,8 @@ import Prelude
 import Control.Alternative (class Alt, class Alternative, class Plus)
 import Control.Apply (lift2)
 import Data.Array (deleteBy)
-import Data.Either (either, fromLeft, fromRight, hush, isLeft, isRight)
 import Data.Compactable (class Compactable)
+import Data.Either (Either(..), either, hush, isLeft, isRight)
 import Data.Filterable (class Filterable, filterMap)
 import Data.Foldable (sequence_, traverse_)
 import Data.Maybe (Maybe(..), fromJust, isJust)
@@ -25,6 +25,12 @@ import FRP.Event.Class (class Filterable, class IsEvent, count, filterMap, fix,
                         sampleOn, sampleOn_, withLast) as Class
 import Partial.Unsafe (unsafePartial)
 import Unsafe.Reference (unsafeRefEq)
+
+fromLeft :: forall b a. Partial => Either a b -> a
+fromLeft (Left a) = a
+
+fromRight :: forall a b. Partial => Either a b -> b
+fromRight (Right a) = a
 
 -- | An `Event` represents a collection of discrete occurrences with associated
 -- | times. Conceptually, an `Event` is a (possibly-infinite) list of values-and-times:
@@ -138,12 +144,12 @@ keepLatest (Event e) = Event \k -> do
 -- | Compute a fixed point
 fix :: forall i o. (Event i -> { input :: Event i, output :: Event o }) -> Event o
 fix f = Event \k -> do
-    c1 <- subscribe input push
+    c1 <- subscribe input event.push
     c2 <- subscribe output k
     pure (c1 *> c2)
   where
-    { event, push } = unsafePerformEffect create
-    { input, output } = f event
+    event = unsafePerformEffect create
+    { input, output } = f event.event
 
 -- | Subscribe to an `Event` by providing a callback.
 -- |
